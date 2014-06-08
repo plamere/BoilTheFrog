@@ -1,0 +1,1 @@
+s3cmd sync --dry-run --acl-public *  s3://static.echonest.com/BoilTheFrog/
