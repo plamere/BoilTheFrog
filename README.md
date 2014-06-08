@@ -6,7 +6,8 @@ the Echo Nest and Spotify to create the playlists.
 
 The app is online at [Boil The Frog](http://static.echonest.com/BoilTheFrog)
 
-![Boil The Frog](http://static.echonest.com/BoilTheFrog/ss.png =600x)
+<img src="http://static.echonest.com/BoilTheFrog/ss.png" width=600>
+
 
 # The Server
 
