@@ -42,6 +42,7 @@ class ArtistGraphServer(object):
         else:
             cherrypy.response.headers['Content-Type']= 'application/json'
 
+        start_time = time.time()
         results = {}
         seed, sims = graph.sim_artist(artist)
         if sims:
@@ -50,6 +51,7 @@ class ArtistGraphServer(object):
             results['sims'] = [graph.get_artist(id) for id in sims]
         else:
             results['status'] = 'error'
+        results['time'] = time.time() - start_time
         return to_json(results, callback)
     similar.exposed = True
 

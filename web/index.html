@@ -177,6 +177,7 @@
 <div id="main">
     <div id='list'> </div>
     <br style="clear:left;"/>
+    <div class="pull-right" id="time-info"> Path created in <span id='path-time'> 10</span> ms. </div>
 </div>
 
 <div id="footer">
@@ -569,6 +570,7 @@ function fetchPath(source, dest) {
                     + data.path.length + ' songs. '  
                 info(msg);
                 showPath(curArtistPath);
+                $("#path-time").text(Math.round(data.time * 1000));
             } else {
                 error("Sorry, "  + data.status);
             }
@@ -578,8 +580,8 @@ function fetchPath(source, dest) {
 
 function fetchSims(artist) {
     ga_track('frog', 'fetchSims',  artist);
-    var url = "http://labs.echonest.com/ArtistGraphServer/similar";
     var url = "http://localhost:8444/ArtistGraphServer/similar";
+    var url = "http://ec2-54-227-6-186.compute-1.amazonaws.com/ArtistGraphServer/similar";
 
     $("#xbuttons").hide();
     info("Showing near neighbors for " + artist);
@@ -594,6 +596,7 @@ function fetchSims(artist) {
                 var msg = 'Similar artists to ' + artist;
                 info(msg);
                 showPath(curArtistPath);
+                $("#path-time").text(Math.round(data.time * 1000));
             } else {
                 error("Sorry, Can't find sims for " + artist);
             }
