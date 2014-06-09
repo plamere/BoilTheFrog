@@ -46,7 +46,6 @@ def add_artist(artist):
     id = artist['id']
     if not id in artists:
         artists[id] = artist
-        print 'search', artist['name']
         searcher.add(artist['name'], artist)
         G.add_node(id)
         if id in songs:
