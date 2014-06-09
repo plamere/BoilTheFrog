@@ -7,7 +7,6 @@ import urllib2
 import time
 import codecs
 
-
 from pyechonest import artist, config, util
 config.TRACE_API_CALLS=False
 
@@ -16,7 +15,7 @@ queue = []
 sim_done = set()
 S = '<sep>'
 RS = ' <sep> '
-min_hotttnesss = .35
+min_hotttnesss = .4
 idspace = 'spotify-WW'
 idspace = 'spotifyv2-ZZ'
 
@@ -56,7 +55,7 @@ def crawl():
                 try:
                     print >>outfile, 'sim', S, id, S, name, S, s.id, S, s.name, S, s.hotttnesss, S, ssimfid
                     if s.id not in sim_done:
-                        queue.append( (s.hotttnesss, s.id, fid, s.name) )
+                        queue.append( (s.hotttnesss, s.id, simfid, s.name) )
                 except UnicodeDecodeError:
                     print "skipping artist because of unicode error", s.id
             sim_done.add(id)

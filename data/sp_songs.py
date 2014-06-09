@@ -129,7 +129,8 @@ def load_hash():
         file.close()
     return hash
     
-
+# artist <sep> ARX6TAQ11C8A415850 <sep> Lady Gaga <sep> 1HY2Jd0NmPuamShAr6KMms <sep> 0.839888
+# sim <sep> ARX6TAQ11C8A415850 <sep> Lady Gaga <sep> ARORMBJ1241B9CDB1A <sep> Ke$ha <sep> 0.749993 <sep> 6LqNN22kT3074XbTVUrhzX
 def load_graph(path):
     RS = ' <sep> '
     artists = []
@@ -141,7 +142,7 @@ def load_graph(path):
             print i, fields[2]
         if fields[0] == 'artist' and len(fields) > 4:
             artist = { 'id' : fields[1], 'name' : fields[2], 'sid' : fields[3], 'hot': float(fields[4]) }
-        elif fields[0] == 'sim' and len(fields) > 5:
+        elif fields[0] == 'sim' and len(fields) > 6:
             artist = { 'id' : fields[3], 'name' : fields[4], 'sid' : fields[6], 'hot': float(fields[5]) }
         else:
             continue

@@ -46,6 +46,7 @@ def add_artist(artist):
     id = artist['id']
     if not id in artists:
         artists[id] = artist
+        print 'search', artist['name']
         searcher.add(artist['name'], artist)
         G.add_node(id)
         if id in songs:
@@ -100,7 +101,7 @@ def get_edge_weight(id1, id2):
 def add_ids(aid, sid):
     if aid in aid_to_sid:
         if sid != aid_to_sid[aid]:
-            print 'mismatched ids'
+            print 'mismatched ids', aid, sid
             sys.exit(-1)
     else:
         aid_to_sid[aid] = sid
@@ -115,12 +116,13 @@ def load_graph(path):
             print i, fields[2]
         if fields[0] == 'artist':
             aid = fields[1]
-            sid = fields[3].split(':')[2]
+            # sid = fields[3].split(':')[2]
+            sid = fields[3]
             add_ids(aid, sid)
             artist = { 'id' : sid, 'name' : fields[2], 'hot': float(fields[4]) }
             if has_songs(sid):
                 add_artist(artist)
-        elif fields[0] == 'sim':
+        elif fields[0] == 'sim' and len(fields) > 5:
             source_aid = fields[1]
             source_sid = aid_to_sid[source_aid]
             if source_sid <> last_source:
@@ -129,7 +131,8 @@ def load_graph(path):
 
             if edge_count < max_edges_per_node:
                 dest_aid = fields[3]
-                dest_sid = fields[6].split(':')[2]
+                #dest_sid = fields[6].split(':')[2]
+                dest_sid = fields[6]
                 add_ids(dest_aid, dest_sid)
 
                 if not skipped(source_sid, dest_sid):
@@ -296,6 +299,7 @@ def init():
     #load_skiplist('skip_list.dat')
     songs = load_song_data('spotify_songs.dat')
     load_graph('full_spotify.dat')
+    #load_graph('tiny_spotify.dat')
     stats()
 
 def load_song_data(path):
