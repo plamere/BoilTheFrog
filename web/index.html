@@ -18,7 +18,7 @@
           </div>          
          <div class="song-info">
             <div class="title album-label"><%= title %></div>
-            <div class="artist album-label"><%= artist %></div>
+            <div title='click to show this similar artists' class="tooltips artist album-label"><%= artist %></div>
          </div>
       </div>
     </script>
@@ -90,14 +90,17 @@
             <ul class="gallery-list">
                 <li> <a href="index.html?src=miley%20cyrus&amp;dest=miles%20davis">Miley Cyrus to Miles Davis </a>
                 <li> <a href="index.html?src=justin%20bieber&amp;dest=jimi%20hendrix"> Justin Bieber to Jimi Hendrix </a>
-                <li> <a href="index.html?src=mickey%20mouse&amp;dest=deadmau5">Mickey Mouse to deadmau5</a>
                 <li> <a href="index.html?src=Patti%20Smith&amp;dest=The%20Smiths"> Patti Smith to the Smiths</a>
                 <li> <a href="index.html?src=elvis%20presley&amp;dest=elvis%20costello"> Elvis to Elvis</a>
                 <li> <a href="index.html?src=carter%20family&amp;dest=rammstein"> The Carter Family to Rammstein</a>
                 <li> <a href="index.html?src=kanye%20west&amp;dest=taylor%20swift"> Kanye West to Taylor Swift</a>
                 <li> <a href="index.html?src=cage+the+elephant&amp;dest=john+cage"> Cage the Elephant to John Cage</a>
                 <li> <a href="index.html?src=ryan+adams&amp;dest=bryan+adams"> Ryan Adams to Bryan Adams</a>
+                <li> <a href="index.html?src=lorde&dest=god%20is%20an%20astronaut"> Lorde to God is an Astronaut</a>
+                <!--
+                <li> <a href="index.html?src=mickey%20mouse&amp;dest=deadmau5">Mickey Mouse to deadmau5</a>
                 <li> <a href="index.html?src=righteous+brothers&amp;dest=steven+wright"> Righteous Brothers to Steven Wright</a>
+                -->
             </ul>
     </div>
 </div>
@@ -354,7 +357,7 @@ function getNoPlayer(artist, allowBypass) {
         }
     );
 
-    el.find('.tooltips').tooltip({placement:'bottom', delay : 1500, html:true});
+    el.find('.tooltips').tooltip({placement:'auto', delay : 1500, html:true});
     return el;
 }
 
@@ -390,6 +393,13 @@ function getPlayer(artist, allowBypass) {
     pause.click( function() {
         playArtist(artist);
         ga_track('frog', 'click-pause',  artist.name);
+    });
+
+    var artistElement = el.find('.artist');
+    artistElement.click( function() {
+        $("#source").val(artist.name);
+        $("#dest").val("");
+        fetchSims(artist.name);
     });
 
     el.hover(
@@ -497,7 +507,7 @@ function showPlaylist(path) {
             var bypass = index > 0 && index < list.length -1;
             artist.adiv = $("<div>").attr('class', 'tadiv');
             artist.which = index;
-            artist.curSong = 0;
+            artist.curSong = randomIndex(artist.songs);
             songDivList.append(artist.adiv);
             showPlayer(artist, bypass); 
         }
