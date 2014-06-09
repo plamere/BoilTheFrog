@@ -1,0 +1,1 @@
+deploy_labs "graph.py server.py web.conf" BoilTheFrog
