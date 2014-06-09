@@ -553,8 +553,8 @@ function addChangeTrack(button, artist) {
 
 function fetchPath(source, dest) {
     ga_track('frog', 'fetchPath',  source + ' ==== ' + dest);
-    var url = "http://ec2-54-227-6-186.compute-1.amazonaws.com/ArtistGraphServer/find_path";
     var url = "http://localhost:8444/ArtistGraphServer/find_path";
+    var url = "http://ec2-54-227-6-186.compute-1.amazonaws.com/ArtistGraphServer/find_path";
 
     $("#xbuttons").hide();
     info("Creating path between " + source + " and " + dest);
@@ -580,8 +580,8 @@ function fetchPath(source, dest) {
 
 function fetchSims(artist) {
     ga_track('frog', 'fetchSims',  artist);
-    var url = "http://ec2-54-227-6-186.compute-1.amazonaws.com/ArtistGraphServer/similar";
     var url = "http://localhost:8444/ArtistGraphServer/similar";
+    var url = "http://ec2-54-227-6-186.compute-1.amazonaws.com/ArtistGraphServer/similar";
 
     $("#xbuttons").hide();
     info("Showing near neighbors for " + artist);
