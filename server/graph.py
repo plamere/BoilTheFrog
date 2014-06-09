@@ -11,6 +11,7 @@ RS = ' <sep> '
 artists ={}
 aid_to_sid = {}
 max_edges_per_node = 4
+min_hotttnesss = .5
 
 G = nx.Graph()
 
@@ -119,8 +120,9 @@ def load_graph(path):
             # sid = fields[3].split(':')[2]
             sid = fields[3]
             add_ids(aid, sid)
-            artist = { 'id' : sid, 'name' : fields[2], 'hot': float(fields[4]) }
-            if has_songs(sid):
+            hot = float(fields[4])
+            artist = { 'id' : sid, 'name' : fields[2], 'hot': hot }
+            if has_songs(sid) and hot >= min_hotttnesss:
                 add_artist(artist)
         elif fields[0] == 'sim' and len(fields) > 5:
             source_aid = fields[1]
@@ -135,11 +137,11 @@ def load_graph(path):
                 dest_sid = fields[6]
                 add_ids(dest_aid, dest_sid)
 
-                if not skipped(source_sid, dest_sid):
+                if not skipped(source_sid, dest_sid) and source_sid in artists:
                     source = artists[source_sid]
-                    dest = { 'id' : dest_sid, 'name' : fields[4], 'hot': float(fields[5]) }
-                    #dest = { 'id' : fields[3], 'name' : fields[4], 'hot': float(fields[5]) }
-                    if has_songs(dest['id']):
+                    shot = float(fields[5])
+                    dest = { 'id' : dest_sid, 'name' : fields[4], 'hot': shot }
+                    if has_songs(dest['id']) and shot >= min_hotttnesss:
                         add_artist(dest)
                         edge_weight = get_edge_weight(source_sid, dest_sid)
                         add_edge(source_sid, dest['id'], edge_weight)
