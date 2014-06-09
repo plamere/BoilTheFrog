@@ -93,7 +93,8 @@ def skipped(n1, n2):
 def get_edge_weight(id1, id2):
     hot1 = artists[id1]['hot']
     hot2 = artists[id2]['hot']
-    edge_weight = 1 + int(1000 * (abs(hot1 - hot2)))
+    edge_weight = 1 + int(100 * (abs(hot1 - hot2)))
+    # edge_weight = 1 + int(1000 * (abs(hot1 - hot2)))
     return edge_weight
 
 

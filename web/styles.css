@@ -63,6 +63,10 @@
     display:none;
 }
 
+#time-info {
+    display:none;
+}
+
 .gallery-list {
     font-size:24px;
 }

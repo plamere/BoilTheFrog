@@ -454,7 +454,6 @@ function audioIsPlaying() {
 }
 
 function togglePausePlay() {
-    console.log('tpp', audio.get(0).paused);
     if (audio.get(0).paused) {
         audio.get(0).play();
     } else {
@@ -562,7 +561,6 @@ function fetchPath(source, dest) {
     $.getJSON(url, {start : source, end : dest, skips:skipList}, function(data) {
             var list = $("#list");
             list.empty();
-            console.log('fetchPath', data);
             if (data.status == 'ok') {
                 info("");
                 curArtistPath= data.path;
@@ -570,6 +568,7 @@ function fetchPath(source, dest) {
                     + data.path.length + ' songs. '  
                 info(msg);
                 showPath(curArtistPath);
+                $("#time-info").show();
                 $("#path-time").text(Math.round(data.time * 1000));
             } else {
                 error("Sorry, "  + data.status);
@@ -587,7 +586,6 @@ function fetchSims(artist) {
     info("Showing near neighbors for " + artist);
     setURL(artist, "", []);
     $.getJSON(url, {artist : artist}, function(data) {
-            console.log('data', data);
             var list = $("#list");
             list.empty();
             if (data.status == 'ok') {
@@ -596,6 +594,7 @@ function fetchSims(artist) {
                 var msg = 'Similar artists to ' + artist;
                 info(msg);
                 showPath(curArtistPath);
+                $("#time-info").show();
                 $("#path-time").text(Math.round(data.time * 1000));
             } else {
                 error("Sorry, Can't find sims for " + artist);
@@ -728,7 +727,6 @@ $(document).ready(
         });
 
         audio.on('ended', function() {
-            console.log('ended');
             playNext();
         });
 
@@ -764,7 +762,6 @@ function savePlaylist() {
     var client_id = '';
     var redirect_uri = '';
 
-    console.log('save Playlist', title, g_tracks);
 	if (location.host == 'localhost:8000') {
 		client_id = 'd37a9e88667b4fb3bc994299de2a52bd';
 		redirect_uri = 'http://localhost:8000/callback.html';
@@ -780,7 +777,6 @@ function savePlaylist() {
     localStorage.setItem('createplaylist-tracks', JSON.stringify(g_tracks));
     localStorage.setItem('createplaylist-name', title);
     var w = window.open(url, 'asdf', 'WIDTH=400,HEIGHT=500');
-    console.log('open url', url);
 }
 
 
