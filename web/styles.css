@@ -34,6 +34,10 @@
     cursor:pointer;
 }
 
+.artist:hover {
+    cursor:pointer;
+}
+
 #options li a:hover {
     background-color:  #727272;
 }
