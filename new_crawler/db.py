@@ -51,18 +51,24 @@ def load_db(prefix="g1"):
     if len(artists) == 0:
         f = open(prefix + "/nodes.js")
         for line in f:
-            artist = json.loads(line.strip())
-            artists[artist['uri']] = artist
-            nname = normalize_name(artist['name'])
-            artist_by_name[nname] = artist
+            try:
+                artist = json.loads(line.strip())
+                artists[artist['uri']] = artist
+                nname = normalize_name(artist['name'])
+                artist_by_name[nname] = artist
+            except:
+                print "skipped bad line in db", line
         print "loaded", len(artists), "artists"
 
     if len(edges) == 0:
         f = open(prefix + "/edges.js")
         for line in f:
-            edge = json.loads(line.strip())
-            for uri, targets in edge.items():
-                edges[uri] = targets
+            try:
+                edge = json.loads(line.strip())
+                for uri, targets in edge.items():
+                    edges[uri] = targets
+            except:
+                print "skipped bad edge in db", line
         print "loaded", len(edges), "edges"
 
 

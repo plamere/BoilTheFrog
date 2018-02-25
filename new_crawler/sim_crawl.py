@@ -2,9 +2,11 @@ import sys
 import json
 import spotipy
 import db
+from spotipy.oauth2 import SpotifyClientCredentials
 
 max_artists = 100000
-spotify = spotipy.Spotify()
+client_credentials_manager = SpotifyClientCredentials()
+spotify = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
 
 known_artists = set()
 expanded_artists = set()
@@ -17,7 +19,6 @@ def process_queue(nodefile, edgefile):
 
 
     while queue and len(known_artists) < max_artists:
-        print "queue len", len(queue)
         artist = queue.pop(0)
         uri = artist['uri']
         if uri in expanded_artists:
@@ -34,11 +35,13 @@ def process_queue(nodefile, edgefile):
             sim_uri = sim_artist['uri']
             if sim_uri not in known_artists:
                 known_artists.add(sim_uri)
-                print "%5d/%-7d %7d %s %3d %s" % (len(known_artists), len(queue), edge_count, sim_uri, sim_artist['popularity'], sim_artist['name'])
+                print "%5d/%-7d %7d %s %3d %7d %s" % (len(known_artists), len(queue), edge_count, sim_uri,
+                sim_artist['popularity'], sim_artist['followers']['total'], sim_artist['name'])
                 queue.append(sim_artist)
                 print >> nodefile,  json.dumps(sim_artist)
             sim_uris.append(sim_artist['uri'])
-        queue.sort(key=lambda a:a['popularity'], reverse=True)
+        #queue.sort(key=lambda a:a['popularity'], reverse=True)
+        queue.sort(key=lambda a:a['followers']['total'], reverse=True)
 
         dict = { artist['uri']: sim_uris }
         print >> edgefile, json.dumps(dict)
@@ -91,18 +94,19 @@ if __name__ == '__main__':
 
             nodefile = open(prefix + '/nodes.js', 'a')
             edgefile = open(prefix + '/edges.js', 'a')
-            queue.sort(key=lambda a:a['popularity'], reverse=True)
+            #queue.sort(key=lambda a:a['popularity'], reverse=True)
+            queue.sort(key=lambda a:a['followers']['total'], reverse=True)
             process_queue(nodefile, edgefile)
 
-        else:
+        elif arg == '--fresh':
+            nodefile = open(prefix + '/nodes.js', 'w')
+            edgefile = open(prefix + '/edges.js', 'w')
             for seed in seeds:
                 artist = spotify.artist(seed)
                 known_artists.add(seed)
                 queue.append(artist)
                 print >> nodefile,  json.dumps(artist)
 
-            nodefile = open(prefix + '/nodes.js', 'w')
-            edgefile = open(prefix + '/edges.js', 'w')
             process_queue(nodefile, edgefile)
 
             queue.sort(key=lambda a:a['popularity'], reverse=True)
