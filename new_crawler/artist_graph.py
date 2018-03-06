@@ -1,187 +1,292 @@
+import sys
+import time
 import networkx as nx
-import db
 import json
-import pydot
-import codecs
-from networkx.algorithms import approximation
-
-trace=True
+import rocksdb
+import collections
+import search
 
 
-def load_graph(dbpath):
-    G = nx.Graph()
-    max_edges_per_node = 100
-    db.load_db(dbpath)
+class ArtistGraph:
+    def __init__(self, db_path='rocks.db'):
+        self.db = rocksdb.DB(db_path, rocksdb.Options(), read_only=True)
+        self.trace = True
+        self.skip_artists_with_no_tracks = False
+        self.max_edges_per_artist = 5
+        self.searcher = search.Searcher(exact=True)
 
-    edges = db.get_all_edges()
+        self.artist_blacklist = set()
+        self.edge_blacklist = collections.defaultdict(set)
+        self.load_blacklist()
 
-    for node, targets in edges.items():
-        for i, target in enumerate(targets[:max_edges_per_node]):
-            add_edge(G, node, target)
-
-    if trace:
-        print "nodes", G.number_of_nodes()
-        print "edges", G.number_of_edges()
-        print "connnected components", len(list(nx.connected_components(G)))
-
-    return G
-
-def add_node(G, node, **kwargs):
-    if node not in G:
-        G.add_node(node, name=db.get_artist(node)['name'])
-    for key, value in kwargs.iteritems():
-        G.node[node][key] = value
-
-def add_edge(G, source, target):
-    add_node(G, source)
-    add_node(G, target)
-    source_pop = db.get_artist(source)['popularity']
-    target_pop = db.get_artist(target)['popularity']
-    delta = abs(source_pop - target_pop)
-    weight = delta = .1 + delta / 200.0
-    G.add_edges_from([(source, target, {"weight": weight})])
-
-def mst(G):
-    return nx.minimum_spanning_tree(G)
-
-def path(G, source, target):
-    return nx.bidirectional_dijkstra(G, source, target)
+        self.load_graph()
 
 
+    def load_blacklist(self):
+        f = open("blacklist.csv")
+        for lineno, line in enumerate(f):
+            line = line.strip()
+            if len(line) == 0:
+                continue
+            if line[0] == '#':
+                continue
+            fields = [f.strip() for f in line.split(',')]
+            if len(fields) > 1 and fields[0] == 'artist':
+                aid = to_aid(fields[1])
+                self.artist_blacklist.add(aid)
+            elif fields[0] == 'edge' and len(fields) > 2:
+                aid1 = to_aid(fields[1])
+                aid2 = to_aid(fields[2])
+                self.edge_blacklist[aid1].add(aid2)
+                self.edge_blacklist[aid2].add(aid1)
+            else:
+                print "unknown blacklist type", fields[0], "at line", lineno
 
-def build_sub_graph2(G, uris):
-    """ given a set of edges build a subgraph
-        that connects these edges
-    """
+    def load_graph(self):
+        self.G = nx.Graph()
+        max_edges_per_node = 100
+        popularity = collections.defaultdict(int)
 
-    original_uris = set(uris)
-    SG = nx.Graph()
-    missing = 0
-    for uri in uris:
-        if not uri in G.nodes:
-            missing += 1
-            print "missing", uri
-    print "missing", missing, "artists"
+        it = self.db.itervalues()
+        it.seek_to_first()
+        missing = []
 
-    artists = db.get_artists(uris)
-    artists.sort(key=lambda a:a['popularity'], reverse=True)
-    remaining_uris = [ artist['uri'] for artist in artists]
-    source_uri = remaining_uris.pop(0)
-
-    all_known_paths = shortest_paths(G, source_uri, remaining_uris)
-    while all_known_paths:
-        length, source, target, path = all_known_paths.pop(0)
-
-        print "BSG", len(all_known_paths), len(remaining_uris), len(SG.nodes), length, source, target
-
-        if target not in SG.nodes:
-            remaining_uris.remove(target)
-            last = None
-            for node in path:
-                if node not in SG.nodes:
-                    add_node(SG, node, bridge_node=node not in original_uris)
-                if last:
-                    add_edge(SG, last, node)
-                last = node
-            all_known_paths.extend(shortest_paths(G, target, remaining_uris))
-            all_known_paths.sort()
-    return SG
-
-
-def build_sub_graph(G, uris):
-    return approximation.steinertree.steiner_tree(G, uris)
-
-def build_sub_graph(G, uris):
-    SG = G.subgraph(uris)
-    return SG
-
-def build_sub_graph3(G, uris):
-    SG = G.subgraph(uris).copy()
-    clusters = list(nx.connected_components(SG))
-    main_cluster = set(clusters[0])
-    for cluster in clusters[1:]:
-        #source = cluster.pop() # todo perhaps use most popular?
-        source = get_top_artist_from_cluster(cluster)
-        paths = shortest_paths(G, source, main_cluster, 3)
-        length, source, target, path = paths[0]
-        last = None
-        for node in path:
-            main_cluster.add(node)
-            add_node(SG, node, bridge_node = node not in uris)
-            if last:
-                add_edge(SG, last, node)
-            last = node
-
-    #SG = nx.minimum_spanning_tree(SG)
-    return SG
-
-def build_sub_graph4(G, uris):
-    return nx.minimum_spanning_tree(build_sub_graph3(G, uris))
-
-def get_top_artist_from_cluster(cluster):
-    lcluster = list(cluster)
-    lcluster.sort(key=lambda uri:db.get_artist(uri)['popularity'], reverse=True)
-    return lcluster[0]
-
-def shortest_paths(G, source, targets, acceptable_length=None):
-    paths = []
-    for target in targets:
-        length, path = nx.bidirectional_dijkstra(G, source, target)
-        paths.append((length, source, path[-1], path))
-        if acceptable_length and length <= acceptable_length:
-            break
-    paths.sort()
-    return paths
-
-def save_graph(G, path):
-    for edge in G.edges():
-        print edge
-
-def an(uri):
-    return db.get_artist_name(uri).encode("utf-8")
-    #return db.get_artist_name(uri)
-
-def au(uri):
-    return uri.split(':')[2]
-
-def print_graph(SG):
-    for edge in SG.edges():
-        print "  %s -> %s" % (an(edge[0]), an(edge[1]))
-
-def dump_graph_as_js(path, SG):
-    obj = nx.node_link_data(SG)
-    f = open(path, "w")
-    print >>f, "var myGraph=",json.dumps(obj, indent=4), ";"
-    f.close()
-
-
-def dump_graph(path, SG):
-    js_path = path.replace(".dot", ".js")
-    dump_graph_as_js(js_path, SG)
-
-    f = open(path, "w")
-    #f = codecs.open(path, "w", encoding= "utf-8")
-    print >> f, "graph {"
-    print >> f, "    graph [overlap=false];"
-    for edge in SG.edges():
-        print >> f, '  "%s" -- "%s";' % (au(edge[0]), au(edge[1]))
-
-    print >>f
-    for node in SG.nodes():
-        nnode = SG.node[node]
-        if 'bridge_node' in nnode and nnode['bridge_node']:
-            shape = 'plain'
+        if self.skip_artists_with_no_tracks:
+            skips = self.get_skipset()
         else:
-            shape = 'ellipse'
-        try:
-            print >> f, '  "%s" [shape=%s, label="%s"];' % (au(node), shape, an(node))
-        except:
-            pass
+            skips = set()
+
+        print "loading popularity"
+        for i, tartist_js in enumerate(it):
+            artist = json.loads(tartist_js)
+            popularity[artist['id']] = artist['popularity']
+        print len(popularity), "artists"
+
+        print "bulding graph"
+        it.seek_to_first()
+        for i, tartist_js in enumerate(it):
+            artist = json.loads(tartist_js)
+            node = artist['id']
+            if node in skips:
+                continue
+
+            if node in self.artist_blacklist:
+                print 'skipped artist', node
+                continue
+
+            self.index(artist['name'],node)
+            if 'edges' in artist:
+                artist_edges = artist['edges'][:self.max_edges_per_artist]
+                nedges = float(len(artist_edges))
+                for edge, target in enumerate(artist_edges):
+                    if target in skips:
+                        continue
+
+                    if target in self.artist_blacklist:
+                        continue
+
+                    if target in self.edge_blacklist[node]:
+                        print 'skipped edge', node, target
+                        continue
+
+                    weight = 1.0 + edge / nedges
+                    self.add_edge(node, target, weight)
+
+            if self.trace and i % 1000 == 0:
+                print "loading %d artists" % (i, )
+
+        print "nodes", self.G.number_of_nodes()
+        print "edges", self.G.number_of_edges()
+        components = list(nx.connected_components(self.G))
+        print "connnected components", len(components)
+        clens = [len(c) for c in components]
+        clens.sort(reverse=True)
+        for cl in clens:
+            print cl, 
+
+    def index(self, name, aid):
+        self.searcher.add(name, aid)
+
+    def search(self, name):
+        matches = self.searcher.search(name)
+        if len(matches) > 0:
+            return matches[0]
+        else:
+            return None
+
+    def get_artist(self, aid):
+        tjs = self.db.get(aid)
+        if tjs:
+            tartist = json.loads(tjs)
+            if not 'edges' in tartist:
+                tartist['edges'] = []
+            if not 'incoming_edges' in tartist:
+                tartist['incoming_edges'] = []
+        else:
+            tartist = None
+        return tartist
+    
+    def get_skipset(self):
+        skips = set()
+        it = self.db.itervalues()
+        it.seek_to_first()
+        missing = []
+        for i, tartist_js in enumerate(it):
+            artist = json.loads(tartist_js)
+            if 'tracks' not in artist or len(artist['tracks'])  == 0:
+                skips.add(artist['id'])
+        if self.trace:
+            print "found %d artists with no tracks" % (len(skips),)
+        return skips
+
+    def path(self, source_name, target_name, skipset=set()):
+        def get_weight(src, dest, attrs):
+            if src in skipset or dest in skipset:
+                # print "gw", srx, dest, attrs, 10000
+                return 10000
+            # print "gw", src, dest, attrs, 1
+            return attrs['weight']
+
+        results = { 
+            'status': 'ok'
+        }
+
+        source_aid = self.search(source_name)
+        if source_aid == None:
+            results['status'] = 'error'
+            results['reason'] = "Can't find " + source_name
+
+        target_aid = self.search(target_name)
+        if target_aid == None:
+            results['status'] = 'error'
+            results['reason'] = "Can't find " + target_name
+
+        print "s=t", source_aid, target_aid
+        if source_aid not in self.G:
+            results['status'] = 'error'
+            results['reason'] = "Can't find " + source_name + " in the artist graph"
+
+        if target_aid not in self.G:
+            results['status'] = 'error'
+            results['reason'] = "Can't find " + target_name + " in the artist graph"
+
+        if source_aid and target_aid and results['status'] == 'ok':
+            start = time.time()
+            if len(skipset) > 0:
+                rpath = nx.dijkstra_path(self.G, source_aid, target_aid, get_weight)
+                score = len(rpath)
+            else:
+                score, rpath = nx.bidirectional_dijkstra(self.G, source_aid, target_aid)
+            pdelta = time.time() - start
+            results['score'] = score
+            populated_path = [self.get_artist(aid) for aid in rpath]
+            fdelta = time.time() - start
+                
+            results['status'] = 'ok'
+            results['raw_path'] = rpath
+            results['path'] = populated_path
+            results['pdelta'] = pdelta * 1000
+            results['fdelta'] = fdelta * 1000
+        return results
+
+    def add_node(self, node):
+        if node not in self.G:
+            self.G.add_node(node)
+
+    def add_edge(self,  source, target, weight):
+        self.add_node(source)
+        self.add_node(target)
+        self.G.add_edges_from([(source, target, {"weight": weight})])
+
+
+    def normalize_name(self, name):
+        name = name.lower().strip()
+        return name
+
+    def an(self, aid):
+        #return self.get_artist(aid)['name']
+        artist = self.get_artist(aid)
+        return "%s(%d)" % (artist['name'], artist['popularity'])
+
+    def edge_check(self, uri):
+        aid = to_aid(uri)
+        artist = self.get_artist(aid)
+
+        print "edge check", self.an(aid)
+
+        combined = set()
+        combined.union(artist['edges'])
+        combined.union(artist['incoming_edges'])
             
-    print >> f, "}"
-    f.close()
+        print "combined:"
+        for aid in combined:
+            print "   ", self.an(aid)
+        print
+
+        print "outgoing:"
+        for aid in artist['edges']:
+            if aid not in combined:
+                print "   ", self.an(aid)
+        print
+        print "incoming:"
+        for aid in artist['incoming_edges']:
+            if aid not in combined:
+                print "   ", self.an(aid)
+        print
+
+    def sim_check(self, uri):
+        aid = to_aid(uri)
+        artist = self.get_artist(aid)
+
+        if not 'edges' in artist:
+            print "leaf node, nothing to do"
+            return 
+
+        sim_counts = collections.Counter()
+        osim_counts = collections.Counter()
+
+        simset = set(artist['edges'])
+        print "sim_check", self.an(aid)
+        print
+        print "normal sims"
+        for i, edge in enumerate(artist['edges']):
+            print "   %d %s %s" % (i, edge, self.an(edge))
+            sim_artist = self.get_artist(edge)
+            if 'edges' in sim_artist:
+                for sedge in sim_artist['edges']:
+                    if sedge in simset:
+                        sim_counts[sedge] += 1
+                    osim_counts[sedge] += 1
+        print
+
+        print "ranked sims"
+        print artist['name']
+        for edge, count in sim_counts.most_common():
+            print "   %d %s %s"% (count, edge, self.an(edge))
+
+        print
+        print "sim neighborhooed"
+        for edge, count in osim_counts.most_common():
+            if count > 1:
+                print "%d %s %s"% (count, edge, self.an(edge))
+
+
+def to_aid(uri_or_aid):
+    if uri_or_aid:
+        fields = uri_or_aid.split(':')
+        if len(fields) == 3:
+            return fields[2]
+    return uri_or_aid
 
 if __name__ == '__main__':
-    G = load_graph()
+    args = sys.argv[1:]
+    uris = []
+
+    ag = ArtistGraph()
+
+    while args:
+        arg = args.pop(0)
+        if arg == '--path':
+            pass
 
 
