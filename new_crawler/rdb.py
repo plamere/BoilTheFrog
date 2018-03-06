@@ -10,9 +10,9 @@ from spotipy.oauth2 import SpotifyClientCredentials
 
 js_nodes = 'g2/nodes.js'
 js_edges = 'g2/edges.js'
-js_nodes = 'g3/nodes.js'
-js_edges = 'g3/edges.js'
-db_path = 'rocks.db'
+js_nodes = 'g4/nodes.js'
+js_edges = 'g4/edges.js'
+db_path = 'rocks2.db'
 read_only = False
 total_runs = 1
 
@@ -77,8 +77,7 @@ def build():
             db.put(tiny_artist['id'], json.dumps(tiny_artist))
             print i, tiny_artist['name']
         except:
-            raise
-            print "trouble with", line
+            print "trouble with artist", line
             continue
     f.close()
 
@@ -90,7 +89,6 @@ def dump_nodes():
             tiny_artist = to_tiny_artist(artist)
             print "%7d %s" % (tiny_artist['followers'], tiny_artist['name'])
         except:
-            raise
             print "trouble with", line
             continue
     f.close()
@@ -99,13 +97,17 @@ def load_edges(path):
     edge_map = {}
     f = open(path)
     for line in f:
-        edge_dict = json.loads(line.strip())
-        for uri, edges in edge_dict.items():
-            tid = uri_to_tid(uri)
-            tedges = []
-            for edge in edges:
-                tedges.append(uri_to_tid(edge))
-            edge_map[tid] = tedges
+        try:
+            edge_dict = json.loads(line.strip())
+            for uri, edges in edge_dict.items():
+                tid = uri_to_tid(uri)
+                tedges = []
+                for edge in edges:
+                    tedges.append(uri_to_tid(edge))
+                edge_map[tid] = tedges
+        except:
+            print "trouble with edge", line
+            continue
     f.close()
     return edge_map
     
@@ -121,6 +123,7 @@ def add_track_info():
             missing.append(tartist)
 
     print "artists missing tracks", len(missing)
+    missing.sort(key=lambda a:a['followers'], reverse=True)
     for i, artist in enumerate(missing):
         add_tracks(artist)
         if not 'incoming_edges' in artist:
@@ -128,7 +131,7 @@ def add_track_info():
         if not 'edges' in artist:
             artist['edges'] = []
         db.put(artist['id'], json.dumps(artist))
-        print i, len(missing), len(artist['tracks']), artist['id'], artist['name']
+        print i, len(missing), len(artist['tracks']), artist['followers'], artist['id'], artist['name']
     print "artists missing tracks", len(missing)
 
 def port_tracks(old_db, new_db):

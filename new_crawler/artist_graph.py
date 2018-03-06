@@ -11,9 +11,15 @@ class ArtistGraph:
     def __init__(self, db_path='rocks.db'):
         self.db = rocksdb.DB(db_path, rocksdb.Options(), read_only=True)
         self.trace = True
-        self.skip_artists_with_no_tracks = False
-        self.max_edges_per_artist = 5
         self.searcher = search.Searcher(exact=True)
+
+        #important configs
+        self.skip_artists_with_no_tracks = True
+        self.simple_edges = False
+        self.max_edges_per_artist = 4
+        self.pop_weight = 100.00
+        self.min_popularity = 30
+
 
         self.artist_blacklist = set()
         self.edge_blacklist = collections.defaultdict(set)
@@ -44,25 +50,24 @@ class ArtistGraph:
 
     def load_graph(self):
         self.G = nx.Graph()
-        max_edges_per_node = 100
         popularity = collections.defaultdict(int)
+        skips = set()
 
         it = self.db.itervalues()
         it.seek_to_first()
         missing = []
 
-        if self.skip_artists_with_no_tracks:
-            skips = self.get_skipset()
-        else:
-            skips = set()
-
         print "loading popularity"
         for i, tartist_js in enumerate(it):
             artist = json.loads(tartist_js)
             popularity[artist['id']] = artist['popularity']
-        print len(popularity), "artists"
+            if self.skip_artists_with_no_tracks:
+                if 'tracks' not in artist or len(artist['tracks'])  == 0:
+                    skips.add(artist['id'])
+        print len(popularity), "artists", "skipping", len(skips)
 
         print "bulding graph"
+        nnodes = 0
         it.seek_to_first()
         for i, tartist_js in enumerate(it):
             artist = json.loads(tartist_js)
@@ -74,26 +79,32 @@ class ArtistGraph:
                 print 'skipped artist', node
                 continue
 
+
+            pop = popularity[node]
+            if pop < self.min_popularity:
+                continue
+
+            nnodes += 1
             self.index(artist['name'],node)
             if 'edges' in artist:
-                artist_edges = artist['edges'][:self.max_edges_per_artist]
-                nedges = float(len(artist_edges))
-                for edge, target in enumerate(artist_edges):
-                    if target in skips:
-                        continue
+                edges = [edge for edge in artist['edges'] if self.is_good_edge(node, edge, skips, popularity)]
 
-                    if target in self.artist_blacklist:
-                        continue
+                if self.simple_edges:
+                    # just weighed by order
+                    edges = edges[:self.max_edges_per_artist]
+                    nedges = float(len(edges))
+                    weighted_edges = [(1.0 + nedge / nedges, edge) for nedge, edge in enumerate(edges)]
+                else:
+                    weighted_edges = [ (1 + self.pop_weight * abs(pop - popularity[edge]) / 100.0, edge)  for edge in edges]
+                    weighted_edges.sort()
+                    weighted_edges = weighted_edges[:self.max_edges_per_artist]
 
-                    if target in self.edge_blacklist[node]:
-                        print 'skipped edge', node, target
-                        continue
-
-                    weight = 1.0 + edge / nedges
+                for weight, target in weighted_edges:
                     self.add_edge(node, target, weight)
 
-            if self.trace and i % 1000 == 0:
-                print "loading %d artists" % (i, )
+
+            if self.trace and nnodes % 1000 == 0:
+                print "loading %d artists" % (nnodes, )
 
         print "nodes", self.G.number_of_nodes()
         print "edges", self.G.number_of_edges()
@@ -104,15 +115,38 @@ class ArtistGraph:
         for cl in clens:
             print cl, 
 
+    def is_good_edge(self, src, dest, skips, popularity):
+        if dest in skips:
+            return False
+
+        if dest in self.artist_blacklist:
+            return False
+
+        if dest in self.edge_blacklist[src]:
+            return False
+
+        if popularity[dest] < self.min_popularity:
+            return False
+
+        return True
+
+
     def index(self, name, aid):
         self.searcher.add(name, aid)
 
     def search(self, name):
-        matches = self.searcher.search(name)
-        if len(matches) > 0:
-            return matches[0]
-        else:
+        if name == None or len(name) == 0:
             return None
+        if name.startswith('spotify:artist:'):
+            fields = name.split(':')
+            if len(fields) == 3:
+                return fields[2]
+           
+        matches = self.searcher.search(name)
+        for match in matches:
+            if match in self.G:
+                return match
+        return None
 
     def get_artist(self, aid):
         tjs = self.db.get(aid)
@@ -151,24 +185,28 @@ class ArtistGraph:
             'status': 'ok'
         }
 
-        source_aid = self.search(source_name)
-        if source_aid == None:
+        if len(source_name) == 0:
             results['status'] = 'error'
-            results['reason'] = "Can't find " + source_name
+            results['reason'] = "No artist given"
+        else:
+            source_aid = self.search(source_name)
+            if source_aid == None:
+                results['status'] = 'error'
+                results['reason'] = "Can't find " + source_name
 
-        target_aid = self.search(target_name)
-        if target_aid == None:
-            results['status'] = 'error'
-            results['reason'] = "Can't find " + target_name
+            target_aid = self.search(target_name)
+            if target_aid == None:
+                results['status'] = 'error'
+                results['reason'] = "Can't find " + target_name
 
-        print "s=t", source_aid, target_aid
-        if source_aid not in self.G:
-            results['status'] = 'error'
-            results['reason'] = "Can't find " + source_name + " in the artist graph"
+            print "s=t", source_aid, target_aid
+            if source_aid not in self.G:
+                results['status'] = 'error'
+                results['reason'] = "Can't find " + source_name + " in the artist graph"
 
-        if target_aid not in self.G:
-            results['status'] = 'error'
-            results['reason'] = "Can't find " + target_name + " in the artist graph"
+            if target_aid not in self.G:
+                results['status'] = 'error'
+                results['reason'] = "Can't find " + target_name + " in the artist graph"
 
         if source_aid and target_aid and results['status'] == 'ok':
             start = time.time()
