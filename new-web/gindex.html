@@ -1,0 +1,861 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title> Boil the Frog</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <link type="text/css" href="styles.css" rel="stylesheet" />
+     <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
+     <script src="lib/underscore-min.js"></script>
+     <link href="dist/sp-bootstrap.min.css" rel="stylesheet" media="screen">
+
+    <script id="track-template" type="text/template">
+      <div class="adiv" style="background-image: url(<%= image %>)">
+          <div class="buttons">
+                <button title='Pick another track' class='btn btn-xs btn-inverse change tooltips'>New track</button>
+                <button title='Skip this artist' class='btn btn-xs btn-inverse bypass tooltips'>Bypass</button>
+                <img class='playbutton play' src='images/play.png'>
+                <img class='playbutton pause' src='images/pause.png'>
+          </div>          
+         <div class="track-info">
+            <div class="title album-label"><%= name %></div>
+            <div title='click to show this similar artists' class="tooltips artist album-label"><%= artist %></div>
+         </div>
+      </div>
+    </script>
+
+    <script id="no-track-template" type="text/template">
+      <div class="adiv" style="background-image: url(images/missing.png)">
+          <div class="buttons">
+                <button title='Route around this artist' class='btn bypass tooltips'>Bypass</button>
+          </div>          
+         <div class="track-info">
+            <div class="title album-label">(no tracks available)</div>
+            <div class="artist album-label"><%= name %></div>
+         </div>
+      </div>
+    </script>
+</head>
+
+<body>
+    <div id="navbar" class="navbar navbar-default navbar-fixed-top" role="navigation">
+      <div class="container">
+        <div class="navbar-header">
+          <a class="navbar-brand" href="index.html">
+            <span class="navbar-logo">Spotify</span>
+            <span class="navbar-title">Boil The Frog</span>
+          </a>
+        </div>
+       <div class="options nav navbar-nav navbar-right">
+           <span id="info" id="show-search" class="option navbar-info navbar-right">Home</span>
+           <span id="info" id="show-gallery" class="option navbar-info navbar-right">Gallery</span>
+           <span id="info" id="show-about" class="option navbar-info navbar-right">About</span>
+        </div>
+      </div>
+    </div>
+
+
+<div id="search" class="hero-unit">
+   <div class="container">
+    <h1> Boil the Frog</h1>
+        <p class="lead">Create a seamless playlist between any two artists</p>
+        <div id="search" class="xinput-group xform-inline">
+            <input type="text" class="input-large input-path gen-input" id="source" value="">
+            <input type="text" class="input-large input-path gen-input" id="dest" value="">
+            <span class="xform-control">
+                <button class="btn btn-info btn-large" id='go' type="button"  onClick='generatePath()'>  Boil the frog </button>
+            </span>
+        </div>
+        <div id="info"> </div>
+        <div id="xbuttons">
+            <span class="" id='tweet-span'> 
+                <a href="https://twitter.com/share" data-size="large" id='tweet' class="twitter-share-button" data-lang="en" data-count='none'>Tweet</a>
+                <script>!function(d,s,id){var
+                js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src="https://platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);}}(document,"script","twitter-wjs");</script>
+            </span>
+            <button class="btn btn-info btn-sm" id='save' type="button"  onClick='savePlaylist()'>  Save this playlist</button>
+        </div>
+    </div>
+</div>
+
+<div id="gallery" class="reg-unit">
+   <div class="container">
+        <h1> Boil the Frog Gallery</h1>
+
+            <br>
+            <div>
+            <p class="lead">
+            Some of the most popular artist paths made with <b>Boil The Frog</b>:
+            </p>
+            </div>
+            <ul class="gallery-list">
+                <li> <a href="index.html?src=miley%20cyrus&amp;dest=miles%20davis">Miley Cyrus to Miles Davis </a>
+                <li> <a href="index.html?src=justin%20bieber&amp;dest=jimi%20hendrix"> Justin Bieber to Jimi Hendrix </a>
+                <li> <a href="index.html?src=Patti%20Smith&amp;dest=The%20Smiths"> Patti Smith to the Smiths</a>
+                <li> <a href="index.html?src=elvis%20presley&amp;dest=elvis%20costello"> Elvis to Elvis</a>
+                <li> <a href="index.html?src=carter%20family&amp;dest=rammstein"> The Carter Family to Rammstein</a>
+                <li> <a href="index.html?src=kanye%20west&amp;dest=taylor%20swift"> Kanye West to Taylor Swift</a>
+                <li> <a href="index.html?src=cage+the+elephant&amp;dest=john+cage"> Cage the Elephant to John Cage</a>
+                <li> <a href="index.html?src=ryan+adams&amp;dest=bryan+adams"> Ryan Adams to Bryan Adams</a>
+                <li> <a href="index.html?src=lorde&dest=god%20is%20an%20astronaut"> Lorde to God is an Astronaut</a>
+                <!--
+                <li> <a href="index.html?src=mickey%20mouse&amp;dest=deadmau5">Mickey Mouse to deadmau5</a>
+                <li> <a href="index.html?src=righteous+brothers&amp;dest=steven+wright"> Righteous Brothers to Steven Wright</a>
+                -->
+            </ul>
+    </div>
+</div>
+
+<div id="about" class="reg-unit">
+  <div class="container">
+        <h1> About Boil the Frog</h1>
+
+            <br>
+            <p>
+            <img src='images/frog.jpg' id="frog-image" alt='boiling frog'>
+            <b> Boil the Frog</b> lets you create a playlist of tracks that gradually takes you from one music style
+            to another. It's like the proverbial frog in the pot of water. If you heat up the pot slowly enough, the
+            frog will never notice that he's being made into a stew and jump out of the pot. With a <b>Boil the
+            frog</b> playlist you can do the same, but with music. You can generate a playlist that will take the
+            listener from one style of music to the other, without the listener ever noticing that they are being made
+            into a stew.
+            </p>
+            <br style="clear:both">
+
+            <h2>How does it work?</h2>
+            <p>
+                To create a Boil The Frog playlist, just type in the names of two artists and a playlist will be
+                generated that takes you gradually, step by step, from the first artist to the second artist. You can
+                click on any track to hear the track. Click on the first track to hear the whole playlist.  If you don't
+                like a particular artist you can route around that particular artist by clicking the 'bypass' button.
+                The 'New Track' button will select a different track for an artist.
+            </p>
+            <p>
+                Boil the Frog plays 30 second versions of your tracks. When you find a playlist you like you can save it
+                to Spotify to listen to the full-length versions.
+            </p>
+
+            <h2> Here are some examples </h2>
+            <ul>
+                <li> <a href="index.html?src='miley%20cyrus'&amp;dest='miles%20davis'">Miley Cyrus to Miles Davis </a>
+                <li> <a href="index.html?src='justin%20bieber'&amp;dest='jimi%20hendrix'"> Justin Bieber to Jimi Hendrix </a>
+                <li> <a href="index.html?src='mickey%20mouse'&amp;dest='deadmau5'">Mickey Mouse to deadmau5</a>
+                <li> <a href="index.html?src='Patti%20Smith'&amp;dest='The%20Smiths'"> Patti Smith to the Smiths</a>
+                <li> <a href="index.html?src='elvis%20presley'&amp;dest='elvis%20costello'"> Elvis to Elvis</a>
+                <li> <a href="index.html?src='carter%20family'&amp;dest='rammstein'"> The Carter Family to Rammstein</a>
+                <li> <a href="index.html?src='kanye%20west'&amp;dest='taylor%20swift'"> Kanye West to Taylor Swift</a>
+            </ul>
+
+            <h2>How does it really work?</h2>
+
+            <p>
+            To create this app, <a href='http://developer.echonest.com'>The Echo Nest</a> artist similarity info is
+            used to build an artist similarity graph of about
+            100,000 of the most popular artists. Each artist in the graph is connected to it's most similar neighbors
+            according to the Echo Nest artist similarity algorithm.
+            <p>
+            <img id='lz-graph'  alt='image graph' src='images/lz.png'>
+            <br>
+            <p>
+            When a playlist between two artists is created, the graph is used to find the path between the two artists.
+            The path isn't necessarily the shortest path through the graph. Instead, priority is given to paths that
+            travel through artists of similar popularity.  If you start and end with a popular artist, you are more 
+            likely to find a path that takes you though other popular artists, and if you start with a long-tail artist
+            you will likely find a path through other long-tail artists.  
+            <p>
+            Once the path of artists is found, we need to select the best tracks for the playlist. To do this, we pick
+            a well-known track for each artist that minimizes the difference in energy between this track, the previous
+            track and the next track.
+            <p>
+            Once we have selected the best tracks, we build a playlist using Spotify's nifty web api.
+
+
+            <h2>Who made this?</h2>
+            <p>
+                This app was built by  <a href="http://twitter.com/plamere">Paul Lamere</a>. If you like this sort of
+                thing you may be interested in my blog at <a href="http://musicmachinery.com">Music Machinery</a>.
+            </p>
+  </div>
+</div>
+
+<div id="main">
+    <div id='list'> </div>
+    <br style="clear:left;"/>
+    <div class="pull-right" id="time-info"> Path created in <span id='path-time'> 10</span> ms. </div>
+</div>
+
+<div id="footer">
+  <div class="container">
+  <small>
+    <p class="muted credit">Created by <a href="http://twitter.com/plamere">@plamere</a>. 
+    Powered by <a href="http://spotify.com">Spotify</a> and <a href="http://the.echonest.com">The Echo Nest</a>. 
+    </p>
+  </small>
+  </div>
+</div>
+
+</div>
+
+<script>
+"use strict";
+
+jQuery.ajaxSettings.traditional = true; 
+var skipList = [];
+var curArtistPath = [];
+var curArtist = null;
+var trackTemplate = _.template($("#track-template").text());
+var notrackTemplate = _.template($("#no-track-template").text());
+var audio = $("<audio>");
+
+
+function randomChoice(list) {
+    return list[Math.floor(Math.random() * list.length)];
+}
+
+function randomIndex(list) {
+    return Math.floor(Math.random() * list.length);
+}
+
+function scoreTrackList(list) {
+    var maxDelta = 0;
+    var maxIndex = 0;
+    var lastEnergy = -1;
+    for (var i = 0; i < list.length; i++) {
+        var which = list[i];
+        var tracks = curArtistPath[i].tracks;
+        if (tracks.length > 0) {
+            var track = tracks[which];
+            var energy = track.energy;
+            if (lastEnergy >= 0) {
+                var delta = Math.abs(energy - lastEnergy);
+                if (delta > maxDelta) {
+                    maxDelta = delta;
+                    maxIndex = i;
+                }
+            }
+            lastEnergy = energy;
+        }
+    }
+    return [maxDelta, maxIndex];
+}
+
+function randomizePlaylist() {
+    var indicies = [];
+
+    for (var i = 0; i < curArtistPath.length; i++) {
+        var tracks = curArtistPath[i].tracks;
+        var index = Math.floor(Math.random() * tracks.length);
+        indicies.push(index);
+    }
+    return indicies;
+}
+
+
+function applyIndicies(indicies) {
+    for (var i = 0; i < curArtistPath.length; i++) {
+        var artist = curArtistPath[i];
+        artist.curTrack = indicies[i];
+    }
+}
+
+function directedEnergyMinimizer(indicies) {
+
+    var done = false;
+    var bestList = indicies.slice(0);
+
+    var score_and_index = scoreTrackList(indicies);
+    while (!done) {
+        done = true;
+
+        var score = score_and_index[0];
+        var index = score_and_index[1];
+
+        var artist = curArtistPath[index];
+        for (var i = 0; i < artist.tracks.length; i++) {
+            indicies[index] = i;
+
+            score_and_index = scoreTrackList(indicies);
+            var newScore = score_and_index[0];
+            if (newScore < score) {
+                done = false;
+                bestList = indicies.slice(0);
+                break;
+            }
+        }
+    }
+    return bestList;
+}
+
+function randomEnergyMinimizer() {
+    var bestScore = 1;
+    var bestList = null;
+    var tries = 100000;
+
+    for (var i = 0; i < tries; i++) {
+        var indicies = randomizePlaylist();
+        var score_and_index = scoreTrackList(indicies);
+        var score = score_and_index[0];
+        if (score < bestScore) {
+            bestScore = score;
+            bestList = indicies;
+        }
+    }
+    bestList = directedEnergyMinimizer(bestList);
+    var finalScore = scoreTrackList(bestList)[0];
+    return bestList;
+}
+
+function minimizeEnergyChange() {
+    var indicies = randomEnergyMinimizer();
+    applyIndicies(indicies);
+}
+
+function generatePath() {
+    var source = $("#source").val();
+    var dest = $("#dest").val();
+    if (dest.length === 0) {
+        fetchSims(source);
+    } else {
+        fetchPath(source, dest);
+    }
+}
+
+function addBypassClick(elem, artist) {
+    elem.click(function(e) { 
+        skipList.push(artist.id);
+        generatePath();
+        ga_track('frog', 'bypass',  artist.name);
+    });
+}
+
+function removeFromList(list, item) {
+    var index = list.indexOf(item);
+    if  (index >= 0) {
+        list.splice(index, 1);
+    }
+}
+
+
+function getNoPlayer(artist, allowBypass) {
+    var el = $(notrackTemplate(artist))
+    var bypass = el.find('.bypass');
+
+    if (allowBypass) {
+        addBypassClick(bypass, artist);
+    } else {
+        bypass.hide();
+    }
+
+    var buttons = el.find('.buttons');
+    buttons.hide();
+    el.hover(
+        function() {
+            artistChanged(artist);
+            buttons.show();
+        },
+        function() {
+            buttons.hide();
+        }
+    );
+
+    el.find('.tooltips').tooltip({placement:'auto', delay : 1500, html:true});
+    return el;
+}
+
+function getPlayer(artist, allowBypass) {
+    var track = artist.tracks[artist.curTrack];
+    track.artist = artist.name;
+    var el = $(trackTemplate(track))
+
+    var changeTrack = el.find('.change');
+    addChangeTrack(changeTrack, artist);
+
+    var bypass = el.find('.bypass');
+
+    if (allowBypass) {
+        addBypassClick(bypass, artist);
+    } else {
+        bypass.hide();
+    }
+
+    //var art = el.find('.album-art');
+
+    var buttons = el.find('.buttons');
+    buttons.hide();
+
+    var pause = el.find('.pause');
+    var play = el.find('.play');
+
+    play.click( function() {
+        playArtist(artist);
+        ga_track('frog', 'click-play',  artist.name);
+    });
+
+    pause.click( function() {
+        playArtist(artist);
+        ga_track('frog', 'click-pause',  artist.name);
+    });
+
+    var artistElement = el.find('.artist');
+    artistElement.click( function() {
+        $("#source").val(artist.name);
+        $("#dest").val("");
+        fetchSims(artist.name);
+    });
+
+    el.hover(
+        function() {
+            artistChanged(artist);
+            buttons.show();
+        },
+        function() {
+            buttons.hide();
+        }
+    );
+
+    el.find('.tooltips').tooltip({placement:'bottom', delay : 1500});
+    return el;
+}
+
+
+function artistChanged(artist) {
+    if (artist) {
+        var el = artist.adiv.find('.adiv');
+
+        var pause = el.find('.pause');
+        var play = el.find('.play');
+
+        if (artist === curArtist) {
+            el.addClass('is-current');
+        } else {
+            el.removeClass('is-current');
+        }
+
+        if (artist === curArtist && audioIsPlaying()) {
+            play.hide();
+            pause.show();
+        } else {
+            play.show();
+            pause.hide();
+        }
+    }
+}
+
+function playArtist(artist) {
+
+    if (artist === curArtist) {
+        togglePausePlay();
+    } else {
+        var oldArtist = curArtist;
+        curArtist = artist;
+        var track = artist.tracks[artist.curTrack];
+        artistChanged(oldArtist);
+        playTrack(track);
+        ga_track('frog', 'play',  artist.name);
+    }
+}
+
+function playTrack(track) {
+    audio.attr('src', track['audio']);
+    audio.get(0).play();
+}
+
+function audioIsPlaying() {
+    return !audio.get(0).paused;
+}
+
+function togglePausePlay() {
+    if (audio.get(0).paused) {
+        audio.get(0).play();
+    } else {
+        audio.get(0).pause();
+    }
+}
+
+function playNext() {
+    if (curArtist) {
+        if (curArtist.which + 1 < curArtistPath.length) {
+            playArtist(curArtistPath[curArtist.which + 1]);
+        } else {
+            curArtist = null;
+        }
+    } 
+}
+
+function showPlayer(artist, bypass) {
+    if (artist.tracks.length > 0) {
+        var track = artist.tracks[artist.curTrack];
+        var player = artist.adiv;
+        player.html(getPlayer(artist, bypass));
+    } else {
+        var player = artist.adiv;
+        player.html(getNoPlayer(artist, bypass));
+    }
+}
+
+function showPath(path) {
+    fixPath(path);
+    showPlaylist(path);
+    $("#list").show();
+    $("#xbuttons").show();
+    tweetSetup();
+}
+
+function showPlaylist(path) {
+    var trackDivList = $("#list");
+    _.each(path, 
+        function(artist, index, list) { 
+            var bypass = index > 0 && index < list.length -1;
+            artist.adiv = $("<div>").attr('class', 'tadiv');
+            artist.which = index;
+            artist.curTrack = randomIndex(artist.tracks);
+            trackDivList.append(artist.adiv);
+            showPlayer(artist, bypass); 
+        }
+    );
+}
+
+function getCurTrack(artist) {
+    if ('tracks' in artist && artist.tracks.length > 0) {
+        var track = artist.tracks[artist.curTrack];
+        return track;
+    } else {
+        return null;
+    }
+}
+
+function getCurTracks() {
+    var curTracks = [];
+    for (var i = 0; i < curArtistPath.length; i++) {
+        var artist = curArtistPath[i];
+        var track = getCurTrack(artist);
+        if (track) {
+            curTracks.push('spotify:track:' + track.id);
+        }
+    }
+    return curTracks;
+}
+
+function filterDupTracks(tracks) {
+    return tracks;
+}
+
+
+function addChangeTrack(button, artist) {
+    button.click( function() {
+        artist.curTrack += 1;
+        if (artist.curTrack >= artist.tracks.length) {
+            artist.curTrack = 0;
+        }
+
+        var track = artist.tracks[artist.curTrack];
+        var player = artist.adiv;
+        player.find('.title').text(track.title);
+        player.find('.adiv').css('background-image', 'url(' +  track.image  +')');
+
+        if (artist == curArtist && audioIsPlaying()) {
+            playTrack(track);
+        }
+
+        ga_track('frog', 'new-track',  artist.name);
+    });
+}
+
+function fetchPath(source, dest) {
+    ga_track('frog', 'fetchPath',  source + ' ==== ' + dest);
+    var url = "http://labs2.echonest.com/ArtistGraphServer/find_path";
+    var url = "http://smarterplaylists.playlistmachinery.com/frog/path";
+
+    $("#xbuttons").hide();
+    info("Creating path between " + source + " and " + dest);
+    setURL(source, dest, skipList);
+    $.getJSON(url, {src : source, dest : dest, skips:skipList.join(",")}, function(data) {
+            var list = $("#list");
+            list.empty();
+            if (data.status == 'ok') {
+                info("");
+                curArtistPath = data.path;
+                var msg = 'Found a path from ' + data.path[0].name + ' to ' + data.path[data.path.length -1].name + ' in ' 
+                    + data.path.length + ' tracks. '  
+                info(msg);
+                showPath(curArtistPath);
+                $("#time-info").show();
+                $("#path-time").text(Math.round(data.time * 1000));
+            } else {
+                error("Sorry, "  + data.status);
+            }
+        }
+    );
+}
+
+function fixPath(path) {
+    _.each(path, function(artist) {
+        fixArtist(artist);
+    });
+}
+
+function fixArtist(artist) {
+    if (!("full_tracks" in artist) ) {
+        artist.full_tracks = artist.tracks;
+        let ntracks = [];
+        _.each(artist.tracks, function(track) {
+            if (track.audio != null) {
+                ntracks.push(track);
+            }
+        });
+        artist.tracks = ntracks;
+    }
+}
+
+function fetchSims(artist) {
+    ga_track('frog', 'fetchSims',  artist);
+    var url = "http://smarterplaylists.playlistmachinery.com/frog/sims";
+
+
+    $("#xbuttons").hide();
+    info("Showing near neighbors for " + artist);
+    setURL(artist, "", []);
+    $.getJSON(url, {artist : artist}, function(data) {
+            var list = $("#list");
+            list.empty();
+            if (data.status == 'ok') {
+                info("");
+                curArtistPath = data.sims;
+                var msg = 'Similar artists to ' + artist;
+                info(msg);
+                showPath(curArtistPath);
+                $("#time-info").show();
+                $("#path-time").text(Math.round(data.time * 1000));
+            } else {
+                error("Sorry, Can't find sims for " + artist);
+            }
+        }
+    );
+}
+
+
+function error(msg) {
+    $("#info").text(msg);
+}
+
+function info(msg) {
+    $("#info").text(msg);
+}
+
+function now() {
+    return new Date().getTime();
+}
+
+function urldecode(str) {
+   return decodeURIComponent((str+'').replace(/\+/g, '%20'));
+}
+
+function processParams() {
+    var params = {};
+    var q = document.URL.split('?')[1];
+    if(q != undefined){
+        q = q.split('&');
+        for(var i = 0; i < q.length; i++){
+            var pv = q[i].split('=');
+            var p = pv[0];
+            var v = pv[1];
+            params[p] = urldecode(v);
+        }
+    }
+
+    if ('src' in params && 'dest' in params) {
+        var src = params['src'];
+        var dest = params['dest'];
+        if ('skip' in params) {
+            skipList = params['skip'].split(',')
+        }
+        $("#source").val(src);
+        $("#dest").val(dest);
+        generatePath();
+    } else {
+        $("#source").val('Weezer');
+        $("#dest").val('Lady Gaga');
+    }
+}
+
+function setURL(src, dest, skiplist) {
+    var p = '?src=' + src + '&dest=' + dest;
+    if (skipList && skiplist.length > 0) {
+        p += '&skip=' + skiplist.join()
+    }
+    history.replaceState({}, document.title, p);
+}
+
+function addNavigation() {
+    $("#show-search").click( 
+        function() {
+           $(".option").removeClass("option-active");
+           $(this).addClass("option-active");
+           $('#search').show();
+           $('#main').show();
+           $('#gallery').hide();
+           $('#about').hide();
+        }
+    );
+
+    $("#show-gallery").click( 
+        function() {
+           $(".option").removeClass("option-active");
+           $(this).addClass("option-active");
+           $('#search').hide();
+           $('#main').hide();
+           $('#gallery').show();
+           $('#about').hide();
+        }
+    );
+
+    $("#show-about").click( 
+        function() {
+           $(".option").removeClass("option-active");
+           $(this).addClass("option-active");
+           $('#search').hide();
+           $('#main').hide();
+           $('#gallery').hide();
+           $('#about').show();
+        }
+    );
+}
+
+$(document).ready(
+    function() {
+        $(".gen-input").keyup( 
+            function(event) {
+                if (event.keyCode == 13) {
+                    generatePath();
+                }
+            }
+        );
+
+        /*
+        R.player.on("change:playingTrack", function(track) {
+            if (track === null) {
+                playNext();
+            }
+        });
+        
+        R.player.on("change:playState", function(state) {
+            artistChanged(curArtist);
+        });
+
+        R.player.on("change:playingSource", function(track) {
+            artistChanged(curArtist);
+        });
+        */
+
+        audio.on('pause', function() {
+            artistChanged(curArtist);
+        });
+
+        audio.on('play', function() {
+            artistChanged(curArtist);
+        });
+
+        audio.on('ended', function() {
+            playNext();
+        });
+
+
+        addNavigation();
+        tweetSetup();
+        processParams();
+    }
+);
+
+function ga_track(page, action, id) {
+    _gaq.push(['_trackEvent', page, action, id]);
+}
+
+
+function getPlaylistTitle() {
+    var source = $("#source").val();
+    var dest = $("#dest").val();
+    var title = "";
+
+    if (source && dest) {
+        title = "From " + source + " to " + dest;
+    } else if (source) {
+        title = "Similar to " + source;
+    }
+    return title;
+}
+
+function savePlaylist() {
+    var title = getPlaylistTitle();
+    var g_tracks = getCurTracks();
+
+    var client_id = '';
+    var redirect_uri = '';
+
+	if (location.host == 'localhost:8000') {
+		client_id = 'd37a9e88667b4fb3bc994299de2a52bd';
+		redirect_uri = 'http://localhost:8000/callback.html';
+	} else {
+		client_id = 'f2ebb64570a64854803bd4c1426f279a';
+		redirect_uri = 'http://static.echonest.com/BoilTheFrog/callback.html';
+	}
+
+    var url = 'https://accounts.spotify.com/authorize?client_id=' + client_id +
+        '&response_type=token' +
+        '&scope=playlist-read-private%20playlist-modify%20playlist-modify-private' +
+        '&redirect_uri=' + encodeURIComponent(redirect_uri);
+    localStorage.setItem('createplaylist-tracks', JSON.stringify(g_tracks));
+    localStorage.setItem('createplaylist-name', title);
+    var w = window.open(url, 'asdf', 'WIDTH=400,HEIGHT=500');
+}
+
+
+function tweetSetup() {
+    $(".twitter-share-button").remove();
+    var tweet = $('<a>')
+        .attr('href', "https://twitter.com/share")
+        .attr('id', "tweet")
+        .attr('class', "twitter-share-button")
+        .attr('data-lang', "en")
+        .attr('data-size', "large")
+        .attr('data-count', "none")
+        .text('Tweet');
+
+    $("#tweet-span").prepend(tweet);
+
+    var msg = 'Create seamless, genre-transitioning playlists with #boilthefrog';
+    if (curArtistPath.length > 0) {
+        var msg = 'I made a ' + curArtistPath.length + ' track playlist from ' + curArtistPath[0].name 
+            + ' to ' + curArtistPath[curArtistPath.length -1].name + ' with #boilthefrog'  
+    }  
+    tweet.attr('data-text', msg);
+    tweet.attr('data-url', document.URL);
+
+    // twitter can be troublesome. If it is not there, don't bother loading it
+    if ('twttr' in window && twttr.widgets) {
+        twttr.widgets.load();
+    }
+}
+
+
+</script>
+<script src="https://sp-bootstrap.global.ssl.fastly.net/8.2.0/sp-bootstrap.min.js"></script>
+
+
+
+<script type="text/javascript">
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-3675615-11']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type =
+'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' :
+'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0];
+s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+
+</body>
+</html>
