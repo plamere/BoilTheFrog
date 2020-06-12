@@ -4,6 +4,7 @@ import sys
 import logging
 import atexit
 import time
+import collections
 
 from flask import Flask, request, jsonify
 from flask_cors import cross_origin
@@ -31,11 +32,82 @@ def api_path():
 
     if src and dest:
         results = APP.ag.path(src, dest, skipset)
+        if results['status'] == 'ok' and results['path']:
+            src_name = results['path'][0]['name']
+            src_id = results['path'][0]['id']
+            dest_name = results['path'][-1]['name']
+            dest_id = results['path'][-1]['id']
+            text = "From " + src_name + " to " + dest_name
+            add_to_history(src_id, dest_id, text, skips)
     else:
         results = {
             "status": "error",
             "reason": "missing src and/or dest",
         }
+    return jsonify(results)
+
+
+history = []
+max_history = 100
+popular = collections.Counter()
+popular_text = {}
+
+def add_to_history(src, dest, text, skips):
+    global history
+    if not found_in_history(src, dest):
+        history.append( (src, dest, skips, text, time.time()) )
+        history = history[:max_history]
+
+    key = src + ":::" + dest
+    popular[key] += 1
+    popular_text[key] = text
+
+
+def found_in_history(src, dest):
+    for hsrc, hdest, skips, text, ts in history:
+        if src == hsrc and dest == hdest:
+            return True
+    return False
+    
+
+@APP.route('/frog/history')
+@cross_origin()
+def api_get_history():
+    out = []
+    for hist in reversed(history):
+        src, dest, skips, text, ts = hist
+        h = {
+            "src": src,
+            "dest": dest,
+            "skips": skips,
+            "text": text,
+            "ts": ts,
+        }
+        out.append(h)
+    results = {
+        "status": 'ok',
+        "history": out
+    }
+    return jsonify(results)
+
+@APP.route('/frog/popular')
+@cross_origin()
+def api_get_popular():
+    pop = []
+    for key, count in popular.most_common(100):
+        src, dest = key.split(':::')
+        text = popular_text[key]
+        h = {
+            "src": src,
+            "dest": dest,
+            "text": text,
+            "count": count
+        }
+        pop.append(h)
+    results = {
+        "status": 'ok',
+        "popular": pop
+    }
     return jsonify(results)
 
 
@@ -86,7 +158,8 @@ def api_sims():
 
         results = {
             "status": "ok",
-            "sims": out
+            "sims": out,
+            "seed": artist
         }
     else:
         results = {

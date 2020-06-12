@@ -4,6 +4,12 @@ import bisect
 import collections
 import re
 import stringutils
+import spotipy
+from spotipy.oauth2 import SpotifyClientCredentials
+
+client_credentials_manager = SpotifyClientCredentials()
+spotify = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
+
 
 class Searcher:
 
@@ -22,6 +28,7 @@ class Searcher:
     def search(self, s, force_exact=False):
         exact = self.exact or force_exact
 
+        org_name = s
         s = de_norm(s)
         p = bisect.bisect_left(self.names, de_norm(s))
 
@@ -41,6 +48,15 @@ class Searcher:
         for l, name in matches:
             for o in self.items[name]:
                 results.append(o)
+        if len(results) == 0:
+            print 'ssearch', s
+            sresults = spotify.search(q=s, type='artist')
+            for item in sresults['artists']['items']:
+                aid = item['id']
+                print '  ss', item['name']
+                self.add(org_name, aid)
+                self.add(item['name'], aid)
+                results.append(aid)
         return results
         
 

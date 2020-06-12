@@ -1,0 +1,8 @@
+source credentials.sh
+export PBL_CACHE=REDIS
+# python flask_server.py
+#gunicorn flask_server:app -b localhost:8000
+until python flask_server.py; do
+    echo "flask server crashed with exit code $?.  Respawning.." >&2
+    sleep 1
+done

@@ -4,7 +4,8 @@ import spotipy
 import db
 from spotipy.oauth2 import SpotifyClientCredentials
 
-max_artists = 100000
+max_artists = 1000000
+superseeds = 50000
 client_credentials_manager = SpotifyClientCredentials()
 spotify = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
 
@@ -12,22 +13,41 @@ known_artists = set()
 expanded_artists = set()
 queue = []
 
+ta = 'spotifh:artist:7dGJo4pcD2V6oG8kP0tJRR' # troublesome artist
+def check_ta(where, artist):
+    if artist['uri'] == ta:
+        print 'TA', where 
 
+def check_ta_uri(where, uri):
+    if uri == ta:
+        print 'TAU', where 
+
+def queue_append(artist):
+    check_ta('queue_append', artist)
+    queue.append( (artist['followers']['total'], artist['uri'], artist['name']))
+
+def queue_sort():
+    queue.sort(reverse=True)
 
 def process_queue(nodefile, edgefile):
     edge_count = 0
 
-
+    queue_sort()
     while queue and len(known_artists) < max_artists:
-        artist = queue.pop(0)
-        uri = artist['uri']
+        followers, uri, artist_name = queue.pop(0)
+        print len(queue), followers, uri, artist_name
         if uri in expanded_artists:
+            print "   done"
+            check_ta_uri('already expanded', uri)
             continue
 
         expanded_artists.add(uri)
         results = spotify.artist_related_artists(uri)
+        if not results['artists']:
+            print "NO SIMS FOR", artist_name
+        check_ta_uri('goit sims', uri)
         for sim_artist in results['artists']:
-            print "        %s =>  %s" % (artist['name'], sim_artist['name'])
+            print "        %s =>  %s" % (artist_name, sim_artist['name'])
 
         sim_uris = []
         for sim_artist in results['artists']:
@@ -36,18 +56,42 @@ def process_queue(nodefile, edgefile):
             if sim_uri not in known_artists:
                 known_artists.add(sim_uri)
                 print "%5d/%-7d %7d %s %3d %7d %s" % (len(known_artists), len(queue), edge_count, sim_uri,
-                sim_artist['popularity'], sim_artist['followers']['total'], sim_artist['name'])
-                queue.append(sim_artist)
+                    sim_artist['popularity'], sim_artist['followers']['total'], sim_artist['name'])
+                queue_append(sim_artist)
                 print >> nodefile,  json.dumps(sim_artist)
             sim_uris.append(sim_artist['uri'])
-        #queue.sort(key=lambda a:a['popularity'], reverse=True)
-        queue.sort(key=lambda a:a['followers']['total'], reverse=True)
+        queue_sort()
 
-        dict = { artist['uri']: sim_uris }
+        check_ta_uri('appended sims', uri)
+        dict = { uri: sim_uris }
         print >> edgefile, json.dumps(dict)
 
             # print "   %s %s => %s %s" % (artist['uri'], artist['name'], sim_artist['uri'], sim_artist['name'])
 
+def load_external_artist_list(top, nodefile, dbpath=None):
+    if dbpath:
+        db.load_db(dbpath)
+    for i, line in enumerate(open('top_artists.txt')):
+        if i < top:
+            fields = line.strip().split()
+            uri = fields[0]
+            count = int(fields[1])
+            name = ' '.join(fields[2:])
+
+            if uri not in known_artists:
+                print "NEW", i, uri, count, name
+                artist = None
+                if dbpath:
+                    artist = db.get_artist(uri)
+                if not artist:
+                    artist = spotify.artist(uri)
+                else:
+                    print "  cache hit for", name
+                known_artists.add(uri)
+                queue_append(artist)
+                print >> nodefile,  json.dumps(artist)
+        else:
+            break
 
 if __name__ == '__main__':
 
@@ -79,23 +123,26 @@ if __name__ == '__main__':
             edges = db.get_all_edges()
 
             for source, targets in edges.items():
+                check_ta_uri('load expanded', source)
                 expanded_artists.add(source)
+
+            for uri, artist in artists.items():
+                if uri not in expanded_artists:
+                    queue_append(artist)
 
             for source, targets in edges.items():
-                expanded_artists.add(source)
-
                 for target in targets:
                     if target not in expanded_artists:
                         artist = db.get_artist(target)
                         if artist:
-                            queue.append(artist)
+                            queue_append(artist)
                         else:
                             print "trouble on restart, unknown artist", artist
 
             nodefile = open(prefix + '/nodes.js', 'a')
             edgefile = open(prefix + '/edges.js', 'a')
-            #queue.sort(key=lambda a:a['popularity'], reverse=True)
-            queue.sort(key=lambda a:a['followers']['total'], reverse=True)
+            #load_external_artist_list(superseeds, nodefile)
+            queue_sort()
             process_queue(nodefile, edgefile)
 
         elif arg == '--fresh':
@@ -104,9 +151,17 @@ if __name__ == '__main__':
             for seed in seeds:
                 artist = spotify.artist(seed)
                 known_artists.add(seed)
-                queue.append(artist)
+                queue_append(artist)
                 print >> nodefile,  json.dumps(artist)
 
             process_queue(nodefile, edgefile)
 
-            queue.sort(key=lambda a:a['popularity'], reverse=True)
+        elif arg == '--superseeds':
+            seed_count = 100
+            if args:
+                seed_count = int(args.pop(0))
+            nodefile = open(prefix + '/nodes.js', 'w')
+            edgefile = open(prefix + '/edges.js', 'w')
+            load_external_artist_list(seed_count, nodefile, "g2")
+            process_queue(nodefile, edgefile)
+
