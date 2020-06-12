@@ -242,3 +242,8 @@
 .empty-link {
     cursor:pointer;
 }   
+
+#the-plot : {
+    width:1000px;
+    height:600px;
+}

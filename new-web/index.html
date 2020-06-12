@@ -27,7 +27,7 @@
     </script>
 
     <script id="no-track-template" type="text/template">
-      <div class="adiv" style="background-image: url(images/missing.png)">
+     <div class="adiv" style="background-image: url(images/missing.png)">
           <div class="buttons">
                 <button title='Route around this artist' class='btn bypass tooltips'>Bypass</button>
           </div>          
@@ -147,13 +147,13 @@
 
                 <h2> Here are some examples </h2>
                 <ul>
-                    <li> <a href="index.html?src='miley%20cyrus'&amp;dest='miles%20davis'">Miley Cyrus to Miles Davis </a>
-                    <li> <a href="index.html?src='justin%20bieber'&amp;dest='jimi%20hendrix'"> Justin Bieber to Jimi Hendrix </a>
-                    <li> <a href="index.html?src='mickey%20mouse'&amp;dest='deadmau5'">Mickey Mouse to deadmau5</a>
-                    <li> <a href="index.html?src='Patti%20Smith'&amp;dest='The%20Smiths'"> Patti Smith to the Smiths</a>
-                    <li> <a href="index.html?src='elvis%20presley'&amp;dest='elvis%20costello'"> Elvis to Elvis</a>
-                    <li> <a href="index.html?src='carter%20family'&amp;dest='rammstein'"> The Carter Family to Rammstein</a>
-                    <li> <a href="index.html?src='kanye%20west'&amp;dest='taylor%20swift'"> Kanye West to Taylor Swift</a>
+                    <li> <a href="index.html?src=miley%20cyrus&amp;dest=miles%20davis">Miley Cyrus to Miles Davis </a>
+                    <li> <a href="index.html?src=justin%20bieber&amp;dest=jimi%20hendrix"> Justin Bieber to Jimi Hendrix </a>
+                    <li> <a href="index.html?src=mickey%20mouse&amp;dest=deadmau5">Mickey Mouse to deadmau5</a>
+                    <li> <a href="index.html?src=Patti%20Smith&amp;dest=The%20Smiths"> Patti Smith to the Smiths</a>
+                    <li> <a href="index.html?src=elvis%20presley&amp;dest=elvis%20costello"> Elvis to Elvis</a>
+                    <li> <a href="index.html?src=carter%20family&amp;dest=rammstein"> The Carter Family to Rammstein</a>
+                    <li> <a href="index.html?src=kanye%20west&amp;dest=taylor%20swift"> Kanye West to Taylor Swift</a>
                 </ul>
 
                 <h2>How does it really work?</h2>
@@ -226,6 +226,8 @@ var curArtist = null;
 var trackTemplate = _.template($("#track-template").text());
 var notrackTemplate = _.template($("#no-track-template").text());
 var audio = $("<audio>");
+var url_prefix = "http://smarterplaylists.playlistmachinery.com/frog/";
+var url_prefix = "http://frog.playlistmachinery.com:4682/frog/";
 
 
 function randomChoice(list) {
@@ -589,8 +591,7 @@ function addChangeTrack(button, artist) {
 
 function fetchPath(source, dest) {
     ga_track('frog', 'fetchPath',  source + ' ==== ' + dest);
-    var url = "http://labs2.echonest.com/ArtistGraphServer/find_path";
-    var url = "http://smarterplaylists.playlistmachinery.com/frog/path";
+    var url = url_prefix + "path";
 
     $("#xbuttons").hide();
     info("Creating path between " + source + " and " + dest);
@@ -640,7 +641,7 @@ function fixArtist(artist) {
 
 function fetchSims(artist) {
     ga_track('frog', 'fetchSims',  artist);
-    var url = "http://smarterplaylists.playlistmachinery.com/frog/sims";
+    var url = url_prefix + "sims";
 
 
     $("#xbuttons").hide();
@@ -807,7 +808,7 @@ $(document).ready(
 
 
 function showPopular() {
-    var url = "http://smarterplaylists.playlistmachinery.com/frog/popular";
+    var url = url_prefix + "popular";
     $.getJSON(url, {}, function(data) {
             var list = $("#popular-list");
             list.empty();
@@ -824,7 +825,7 @@ function showPopular() {
 }
 
 function showRecents() {
-    var url = "http://smarterplaylists.playlistmachinery.com/frog/history";
+    var url = url_prefix + "history";
     $.getJSON(url, {}, function(data) {
             var list = $("#recent-list");
             list.empty();
@@ -870,7 +871,7 @@ function savePlaylist() {
 		redirect_uri = 'http://localhost:8000/callback.html';
 	} else {
 		client_id = 'f2ebb64570a64854803bd4c1426f279a';
-		redirect_uri = 'http://static.echonest.com/BoilTheFrog/callback.html';
+		redirect_uri = 'http://boilthefrog.playlistmachinery.com/callback.html';
 	}
 
     var url = 'https://accounts.spotify.com/authorize?client_id=' + client_id +
