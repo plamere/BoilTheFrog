@@ -4,7 +4,7 @@ This is the source for a web app called BoilTheFrog that creates seamless
 Spotify playlists between any two artists.  The app uses data from
 the Echo Nest and Spotify to create the playlists.
 
-The app is online at [Boil The Frog](http://boilthefrog.playlistmachinery.com/callback.html)
+The app is online at [Boil The Frog](http://boilthefrog.playlistmachinery.com/)
 
 <img src="http://boilthefrog.playlistmachinery.com/BoilTheFrog/ss.png" width=600>
 
